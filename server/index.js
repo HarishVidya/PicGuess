@@ -40,4 +40,34 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('join_game', async ({ username, name }) => {
+        try {
+            let party = await Party.findOne({ name });
+            if (!party) {
+                socket.emit('notCorrectGame', 'Please enter a valid room name')
+                return;
+            }
+
+            if (party.isJoin) {
+                let player = {
+                    socketID: socket.id,
+                    username,
+                }
+                party.players.push(player);
+                socket.join(name);
+
+                if (party.players.length === party.partySize) {
+                    party.isJoin = false;
+                }
+                party.turn = room.players[party.turnIndex];
+                party = await party.save();
+            } else {
+                socket.emit('notCorrectGame', 'The game is in progress, please try later');
+            }
+
+        } catch (err) {
+            console.log(err);
+        }
+    })
+
 });
